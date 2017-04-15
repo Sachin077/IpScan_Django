@@ -16,6 +16,8 @@ from django.db.models import Avg
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 import sh
+import pxssh
+import socket
 
 @csrf_exempt
 def loginUser(request):
@@ -50,6 +52,7 @@ def home(request):
 	else:
 		return render(request, "login.html")
 
+@login_required
 def scanIPRange(request):
 	start_ip = request.GET['start_ip']
 	end_ip = request.GET['end_ip']
@@ -81,3 +84,40 @@ def scanIPRange(request):
 	        print "no response from", address
 
 	return HttpResponse(iplist)
+
+@login_required
+@csrf_exempt
+def getInfo(request):
+	ip = request.POST['ip']
+	username = request.POST['username']
+	password = request.POST['password']
+	try:
+		name = socket.gethostbyaddr(ip)
+	except:
+		name = "unknown host"
+		print "unknown host"
+	try:                                                            
+	    s = pxssh.pxssh()
+	    ip = "128.199.157.163"
+	    username = "root"
+	    password = "allenross356_root"
+	    s.login (ip, username, password)
+	    s.sendline ('uptime')   # run a command
+	    s.prompt()             # match the prompt
+	    uptime = s.before          # print everything before the prompt.
+	    s.sendline ('df')
+	    s.prompt()
+	    disk = s.before
+	    s.sendline ('free')
+	    s.prompt()
+	    mem = s.before
+	    s.logout()
+	    user = request.user()
+	    userpro = UserProfile.objects.get(user=user)
+	    obj = ScanResults(ip=ip, hostname=name,uptime=uptime,mem=mem,disk=disk,user=userpro)
+	    obj.save()
+	    li = [name,uptime,disk,mem]
+	    return HttpResponse(li)
+	except pxssh.ExceptionPxssh, e:
+	    print "pxssh failed on login."
+	    print str(e)

@@ -13,4 +13,5 @@ urlpatterns = [
     url(r'^login/', views.loginUser, name='login'),
     url(r'^home/', views.home, name='home'),
     url(r'^scanIPRange/', views.scanIPRange, name='ping'),
+    url(r'^getinfo/', views.getInfo, name='getinfo'),
 ]
